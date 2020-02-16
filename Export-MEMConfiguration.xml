@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+<Configuration>
+	<Tenant>yourtenant.onmicrosoft.com</Tenant> <!-- Specifies which tenant to use, using script parameter -Tenant will override this value -->
+	<Document>True</Document> <!-- Enables the document feature and creates a wordfile -->
+	<DocumentName>IntuneDoc.docx</DocumentName> <!-- Sets the document name, using script parameter -DocumentName will override this value -->
+	<DocumentLastChange>True</DocumentLastChange> <!-- Retrives who did the last change for each object using audit logswhere applicable. This requries the appropiate rights to read auditlogs to work properly.  -->
+	<MaxStringLength>300</MaxStringLength> <!-- Sets the max lenght for any name/value when documenting. Values longer then specified value will be trunkated -->
+	<Export>True</Export> <!-- Enabled the export function, this will export a JSON file for each setting -->
+	<ExportPath>C:\temp\export_{0}</ExportPath> <!-- Sets the path where the exported files will be created, if files already there they will be overwriten, using script parameter -ExportPath will override this value. 
+								If both values are empty, script will ask for input. {0} will be replaced with datetime in the format yyyyMMddhhmm for example c:\temp\export_202001281313 -->
+	<ExportCSV>False</ExportCSV> <!-- This will export a csv for every file in addition to the JSON created -->
+	<AppendDate>True</AppendDate> <!-- Appends the date to all exported files -->
+	<maxlogfilesize>5</maxlogfilesize> <!-- Max logsize in Megabytes -->
+	<graphApiVersion>Beta</graphApiVersion> <!-- API version, valid values are "Beta" and "v1.0" -->
+</Configuration>
+	<Process> <!-- Enable/Disable classes for export/documentation-->
+		<managedDeviceOverview>True</managedDeviceOverview>
+		<termsAndConditions>True</termsAndConditions>
+		<deviceCompliancePolicies>True</deviceCompliancePolicies>
+		<deviceEnrollmentConfigurations>True</deviceEnrollmentConfigurations>
+		<deviceConfigurations>True</deviceConfigurations>
+		<windowsAutopilotDeploymentProfiles>True</windowsAutopilotDeploymentProfiles>
+		<mobileApps>True</mobileApps>
+		<applePushNotificationCertificate>False</applePushNotificationCertificate>
+		<vppTokens>False</vppTokens>
+		<policysets>True</policysets>
+		<groupPolicyConfigurations>True</groupPolicyConfigurations>
+		<deviceManagementScripts>True</deviceManagementScripts>
+		<Groups>True</Groups>
+	</Process>
+</root>
