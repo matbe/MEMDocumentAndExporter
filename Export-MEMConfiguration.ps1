@@ -276,7 +276,15 @@ Function Get-GraphUri() {
     Write-Log "Connecting to $uri"
     try {
         If ($Value) {
-            $response = (Invoke-RestMethod -Uri $uri -Headers $authToken -Method Get).Value
+            $Response = Invoke-RestMethod -Uri $uri -Headers $authToken -Method Get
+            $TempValue = ($Response).value
+            $ResponseNextLink = ($Response).'@odata.nextLink'
+                while ($null -ne $ResponseNextLink){
+                    $Response = Invoke-RestMethod -Uri $ResponseNextLink –Headers $authToken –Method Get
+                    $ResponseNextLink = ($Response).'@odata.nextLink'
+                    $TempValue += ($Response).value
+                }
+            $Response = $TempValue
         }
         else {
             $response = Invoke-RestMethod -Uri $uri -Headers $authToken -Method Get
@@ -817,7 +825,7 @@ If ($Processpolicysets) {
                 If ($export) { 
                     Add-WordText -WordDocument $WordDocument -Text 'Exported files:' -Supress $True
                     Add-WordHyperLink -WordDocument $WordDocument -UrlText "$JSONFileName" -UrlLink "$ExportPath\$classpath\$JSONFileName" -Supress $True 
-               }
+                }
             
                 If (($expandeditem.items).Count -ge 1) {
                     Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
@@ -987,5 +995,3 @@ If ($ProcessGroups) {
 If ($Document) { Save-WordDocument -WordDocument $WordDocument -FilePath $FullDocumentationPath -OpenDocument -Supress $true }
 
 Write-Log "---------- Script Completed ----------"
-
-
