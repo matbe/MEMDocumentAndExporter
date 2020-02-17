@@ -514,48 +514,48 @@ Function Export-JSONData() {
                 }
             }
         }
-        else {
-            $JSON1 = ConvertTo-Json $JSON -Depth 5
-            $JSON_Convert = $JSON1 | ConvertFrom-Json
-            If ($FileName -eq "") {
-                $displayName = $JSON_Convert.displayName
-            }
-            else {
-                $displayName = $FileName
-            }
-            # Updating display name to follow file naming conventions - https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
-            $DisplayName = $DisplayName -replace '\<|\>|:|"|/|\\|\||\?|\*', "_"
-            $Properties = ($JSON_Convert | Get-Member | Where-Object { $_.MemberType -eq "NoteProperty" }).Name
-            If ($script:AppendDate) {
-                $FileName_JSON = "$DisplayName" + "_" + $(get-date -f dd-MM-yyyy-H-mm-ss) + ".json"
-            }
-            else {
-                $FileName_JSON = "$DisplayName" + ".json"
-            }
 
-            #write-verbose "Export Path: $ExportPath"
-            
-            If ($ExportCSV) {
-                If ($script:AppendDate) {
-                    $FileName_CSV = "$DisplayName" + "_" + $(get-date -f dd-MM-yyyy-H-mm-ss) + ".csv"
-                } 
-                else {
-                    $FileName_CSV = "$DisplayName" + ".csv"
-                }
-                $Object = New-Object System.Object
-    
-                foreach ($Property in $Properties) {
-                    $Object | Add-Member -MemberType NoteProperty -Name $Property -Value $JSON_Convert.$Property
-                }
-        
-                $Object | Export-Csv -LiteralPath "$ExportPath\$FileName_CSV" -Delimiter "," -NoTypeInformation -Append -Encoding UTF8
-                write-host "CSV created in $ExportPath\$FileName_CSV..." -f cyan
-            }
-            
-            $JSON1 | Set-Content -LiteralPath "$ExportPath\$FileName_JSON" -Encoding UTF8
-            write-host "JSON created in $ExportPath\$FileName_JSON..." -f cyan
-            write-log "JSON created in $ExportPath\$FileName_JSON..."
+        $JSON1 = ConvertTo-Json $JSON -Depth 5
+        $JSON_Convert = $JSON1 | ConvertFrom-Json
+        If ($FileName -eq "") {
+            $displayName = $JSON_Convert.displayName
         }
+        else {
+            $displayName = $FileName
+        }
+        # Updating display name to follow file naming conventions - https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
+        $DisplayName = $DisplayName -replace '\<|\>|:|"|/|\\|\||\?|\*', "_"
+        $Properties = ($JSON_Convert | Get-Member | Where-Object { $_.MemberType -eq "NoteProperty" }).Name
+        If ($script:AppendDate) {
+            $FileName_JSON = "$DisplayName" + "_" + $(get-date -f dd-MM-yyyy-H-mm-ss) + ".json"
+        }
+        else {
+            $FileName_JSON = "$DisplayName" + ".json"
+        }
+
+        #write-verbose "Export Path: $ExportPath"
+        
+        If ($ExportCSV) {
+            If ($script:AppendDate) {
+                $FileName_CSV = "$DisplayName" + "_" + $(get-date -f dd-MM-yyyy-H-mm-ss) + ".csv"
+            } 
+            else {
+                $FileName_CSV = "$DisplayName" + ".csv"
+            }
+            $Object = New-Object System.Object
+
+            foreach ($Property in $Properties) {
+                $Object | Add-Member -MemberType NoteProperty -Name $Property -Value $JSON_Convert.$Property
+            }
+    
+            $Object | Export-Csv -LiteralPath "$ExportPath\$FileName_CSV" -Delimiter "," -NoTypeInformation -Append -Encoding UTF8
+            write-host "CSV created in $ExportPath\$FileName_CSV..." -f cyan
+        }
+        
+        $JSON1 | Set-Content -LiteralPath "$ExportPath\$FileName_JSON" -Encoding UTF8
+        write-host "JSON created in $ExportPath\$FileName_JSON..." -f cyan
+        write-log "JSON created in $ExportPath\$FileName_JSON..."
+
         return $FileName_JSON
     }
     catch {
@@ -948,7 +948,6 @@ If ($ProcessdeviceManagementScripts) {
                 If ($export) { 
                     Add-WordText -WordDocument $WordDocument -Text 'Exported files:' -Supress $True
                     Add-WordHyperLink -WordDocument $WordDocument -UrlText "$JSONFileName" -UrlLink "$ExportPath\$classpath\$JSONFileName" -Supress $True 
-                    Add-WordHyperLink -WordDocument $WordDocument -UrlText "$($response.filename)" -UrlLink "$ExportPath\$classpath\$($response.filename)" -Supress $True
                 }
             
                 If (($expandeditem.assignments).Count -ge 1) {
