@@ -817,8 +817,7 @@ If ($Processpolicysets) {
                 If ($export) { 
                     Add-WordText -WordDocument $WordDocument -Text 'Exported files:' -Supress $True
                     Add-WordHyperLink -WordDocument $WordDocument -UrlText "$JSONFileName" -UrlLink "$ExportPath\$classpath\$JSONFileName" -Supress $True 
-                    Add-WordHyperLink -WordDocument $WordDocument -UrlText "$($response.filename)" -UrlLink "$ExportPath\$classpath\$($response.filename)" -Supress $True
-                }
+               }
             
                 If (($expandeditem.items).Count -ge 1) {
                     Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
@@ -948,6 +947,7 @@ If ($ProcessdeviceManagementScripts) {
                 If ($export) { 
                     Add-WordText -WordDocument $WordDocument -Text 'Exported files:' -Supress $True
                     Add-WordHyperLink -WordDocument $WordDocument -UrlText "$JSONFileName" -UrlLink "$ExportPath\$classpath\$JSONFileName" -Supress $True 
+                    Add-WordHyperLink -WordDocument $WordDocument -UrlText "$($response.filename)" -UrlLink "$ExportPath\$classpath\$($response.filename)" -Supress $True
                 }
             
                 If (($expandeditem.assignments).Count -ge 1) {
