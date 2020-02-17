@@ -320,56 +320,59 @@ function Invoke-GraphClass() {
 
     Update-AuthToken
 
-    If ($Value) { $responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Value }
-    else { $responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class }
+    If ($Value) { [array]$responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Value }
+    else { [array]$responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class }
 
     If ($Document) { Add-WordText -WordDocument $WordDocument -Text $Title -HeadingType Heading1 -Supress $True }
 
-    foreach ($response in $responsarray) {
-        $classpath = $class -replace "/", "\"
-        If ($Export) { 
-            If ($PropForFileName -eq "") {
-                $JSONFileName = Export-JSONData -JSON $response -ExportPath "$ExportPath\$classpath" -Force 
-            }
-            else {
-                $JSONFileName = Export-JSONData -JSON $response -ExportPath "$ExportPath\$classpath" -FileName (Format-DataToString -Data $response.$PropForFileName)  -Force 
-            } 
-        }
-
-        If ($Document) {    
-            If ($Properties.Count -ne 0) {
-                $subvalues = $response | Select-Object -Property $Properties #|Select-Object -Property displayName,id,lastModifiedDateTime,description
-            }
-            else { $subvalues = $response }
-
-            $hashtable = New-Object System.Collections.Specialized.OrderedDictionary
-            foreach ($prop in $subvalues.psobject.properties) {
-                $hashtable[(Format-DataToString $($prop.Name))] = (Format-DataToString $($prop.Value))
-            }
-    
-            If($GetLastChange)
-            {
-                $auditresponse = $null
-                $auditresponse = Get-GraphUri -ApiVersion $script:graphApiVersion -Class "deviceManagement/auditEvents" -OData "?`$filter=resources/any(d:d/resourceId eq '$($response.id)')&`$top=1" -Value
-                If($null -ne $auditresponse){
-                    $hashtable["Last Change By"] = (Format-DataToString $($auditresponse.actor.userPrincipalName))
-                    $hashtable["Last Change Action"] = (Format-DataToString $($auditresponse.activityOperationType))
+    If($responsarray.Count -gt 0)
+    {
+        foreach ($response in $responsarray) {
+            $classpath = $class -replace "/", "\"
+            If ($Export) { 
+                If ($PropForFileName -eq "") {
+                    $JSONFileName = Export-JSONData -JSON $response -ExportPath "$ExportPath\$classpath" -Force 
                 }
+                else {
+                    $JSONFileName = Export-JSONData -JSON $response -ExportPath "$ExportPath\$classpath" -FileName (Format-DataToString -Data $response.$PropForFileName)  -Force 
+                } 
             }
 
-            Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
-            If ($PropForFileName -eq "") {
-                Add-WordText -WordDocument $WordDocument -Text $response.displayName -HeadingType Heading3 -Supress $True
-            }
-            else {
-                Add-WordText -WordDocument $WordDocument -Text (Format-DataToString -Data $response.$PropForFileName) -HeadingType Heading3 -Supress $True
-            }
-            
+            If ($Document) {    
+                If ($Properties.Count -ne 0) {
+                    $subvalues = $response | Select-Object -Property $Properties #|Select-Object -Property displayName,id,lastModifiedDateTime,description
+                }
+                else { $subvalues = $response }
 
-            Add-WordTable -WordDocument $WordDocument -DataTable $hashtable -Design LightGridAccent1 -AutoFit Window  -Supress $True
-            If ($export) { 
-                Add-WordText -WordDocument $WordDocument -Text 'Exported file:' -Supress $True
-                Add-WordHyperLink -WordDocument $WordDocument -UrlText "$JSONFileName" -UrlLink "$ExportPath\$classpath\$JSONFileName" -Supress $True 
+                $hashtable = New-Object System.Collections.Specialized.OrderedDictionary
+                foreach ($prop in $subvalues.psobject.properties) {
+                    $hashtable[(Format-DataToString $($prop.Name))] = (Format-DataToString $($prop.Value))
+                }
+        
+                If($GetLastChange)
+                {
+                    $auditresponse = $null
+                    $auditresponse = Get-GraphUri -ApiVersion $script:graphApiVersion -Class "deviceManagement/auditEvents" -OData "?`$filter=resources/any(d:d/resourceId eq '$($response.id)')&`$top=1" -Value
+                    If($null -ne $auditresponse){
+                        $hashtable["Last Change By"] = (Format-DataToString $($auditresponse.actor.userPrincipalName))
+                        $hashtable["Last Change Action"] = (Format-DataToString $($auditresponse.activityOperationType))
+                    }
+                }
+
+                Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
+                If ($PropForFileName -eq "") {
+                    Add-WordText -WordDocument $WordDocument -Text $response.displayName -HeadingType Heading3 -Supress $True
+                }
+                else {
+                    Add-WordText -WordDocument $WordDocument -Text (Format-DataToString -Data $response.$PropForFileName) -HeadingType Heading3 -Supress $True
+                }
+                
+
+                Add-WordTable -WordDocument $WordDocument -DataTable $hashtable -Design LightGridAccent1 -AutoFit Window  -Supress $True
+                If ($export) { 
+                    Add-WordText -WordDocument $WordDocument -Text 'Exported file:' -Supress $True
+                    Add-WordHyperLink -WordDocument $WordDocument -UrlText "$JSONFileName" -UrlLink "$ExportPath\$classpath\$JSONFileName" -Supress $True 
+                }
             }
         }
     }
@@ -399,65 +402,67 @@ function Invoke-GraphClassExpand() {
 
     Update-AuthToken
 
-    If ($Value) { $responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Value }
-    else { $responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class }
+    If ($Value) { [array]$responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Value }
+    else { [array]$responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class }
 
     If ($Document) { Add-WordText -WordDocument $WordDocument -Text $Title -HeadingType Heading1 -Supress $True }
-
-    foreach ($response in $responsarray) {
-        $classpath = $class -replace "/", "\"
-        If ($Export) { 
-            If ($PropForFileName -eq "") {
-                $JSONFileName = Export-JSONData -JSON $response -ExportPath "$ExportPath\$classpath" -Force 
-            }
-            else {
-                $JSONFileName = Export-JSONData -JSON $response -ExportPath "$ExportPath\$classpath" -FileName (Format-DataToString -Data $response.$PropForFileName)  -Force 
-            } 
-        }
-
-        If ($Document) {    
-            If ($Properties.Count -ne 0) {
-                $subvalues = $response | Select-Object -Property $Properties #|Select-Object -Property displayName,id,lastModifiedDateTime,description
-            }
-            else { $subvalues = $response }
-
-            $hashtable = New-Object System.Collections.Specialized.OrderedDictionary
-            foreach ($prop in $subvalues.psobject.properties) {
-                $hashtable[(Format-DataToString $($prop.Name))] = (Format-DataToString $($prop.Value))
-            }
-
-            If($GetLastChange)
-            {
-                $auditresponse = $null
-                $auditresponse = Get-GraphUri -ApiVersion $script:graphApiVersion -Class "deviceManagement/auditEvents" -OData "?`$filter=resources/any(d:d/resourceId eq '$($response.id)')&`$top=1" -Value
-                If($null -ne $auditresponse){
-                    $hashtable["Last Change By"] = (Format-DataToString $($auditresponse.actor.userPrincipalName))
-                    $hashtable["Last Change Action"] = (Format-DataToString $($auditresponse.activityOperationType))
+    If($responsarray.Count -gt 0)
+    {
+        foreach ($response in $responsarray) {
+            $classpath = $class -replace "/", "\"
+            If ($Export) { 
+                If ($PropForFileName -eq "") {
+                    $JSONFileName = Export-JSONData -JSON $response -ExportPath "$ExportPath\$classpath" -Force 
                 }
+                else {
+                    $JSONFileName = Export-JSONData -JSON $response -ExportPath "$ExportPath\$classpath" -FileName (Format-DataToString -Data $response.$PropForFileName)  -Force 
+                } 
             }
 
-            Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
-            If ($PropForFileName -eq "") {
-                Add-WordText -WordDocument $WordDocument -Text $response.displayName -HeadingType Heading3 -Supress $True
-            }
-            else {
-                Add-WordText -WordDocument $WordDocument -Text (Format-DataToString -Data $response.$PropForFileName) -HeadingType Heading3 -Supress $True
-            }
-            
-
-            Add-WordTable -WordDocument $WordDocument -DataTable $hashtable -Design LightGridAccent1 -AutoFit Window  -Supress $True
-            If ($export) { 
-                Add-WordText -WordDocument $WordDocument -Text 'Exported file:' -Supress $True
-                Add-WordHyperLink -WordDocument $WordDocument -UrlText "$JSONFileName" -UrlLink "$ExportPath\$classpath\$JSONFileName" -Supress $True 
-            }
-            $expandeditem = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Id $response.id -OData '?$Expand=assignments'
-            If (($expandeditem.assignments).Count -ge 1) {
-                Add-WordText -WordDocument $WordDocument -Text 'This item have been assigned to the following groups' -Supress $True
-                $ListOfGroups = @()
-                foreach ($assignment in $expandeditem.assignments) {
-                    $ListOfGroups += ($Groups -match $assignment.target.groupId).displayName
+            If ($Document) {    
+                If ($Properties.Count -ne 0) {
+                    $subvalues = $response | Select-Object -Property $Properties #|Select-Object -Property displayName,id,lastModifiedDateTime,description
                 }
-                Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $ListOfGroups -Supress $True -Verbose
+                else { $subvalues = $response }
+
+                $hashtable = New-Object System.Collections.Specialized.OrderedDictionary
+                foreach ($prop in $subvalues.psobject.properties) {
+                    $hashtable[(Format-DataToString $($prop.Name))] = (Format-DataToString $($prop.Value))
+                }
+
+                If($GetLastChange)
+                {
+                    $auditresponse = $null
+                    $auditresponse = Get-GraphUri -ApiVersion $script:graphApiVersion -Class "deviceManagement/auditEvents" -OData "?`$filter=resources/any(d:d/resourceId eq '$($response.id)')&`$top=1" -Value
+                    If($null -ne $auditresponse){
+                        $hashtable["Last Change By"] = (Format-DataToString $($auditresponse.actor.userPrincipalName))
+                        $hashtable["Last Change Action"] = (Format-DataToString $($auditresponse.activityOperationType))
+                    }
+                }
+
+                Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
+                If ($PropForFileName -eq "") {
+                    Add-WordText -WordDocument $WordDocument -Text $response.displayName -HeadingType Heading3 -Supress $True
+                }
+                else {
+                    Add-WordText -WordDocument $WordDocument -Text (Format-DataToString -Data $response.$PropForFileName) -HeadingType Heading3 -Supress $True
+                }
+                
+
+                Add-WordTable -WordDocument $WordDocument -DataTable $hashtable -Design LightGridAccent1 -AutoFit Window  -Supress $True
+                If ($export) { 
+                    Add-WordText -WordDocument $WordDocument -Text 'Exported file:' -Supress $True
+                    Add-WordHyperLink -WordDocument $WordDocument -UrlText "$JSONFileName" -UrlLink "$ExportPath\$classpath\$JSONFileName" -Supress $True 
+                }
+                $expandeditem = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Id $response.id -OData '?$Expand=assignments'
+                If (($expandeditem.assignments).Count -ge 1) {
+                    Add-WordText -WordDocument $WordDocument -Text 'This item have been assigned to the following groups' -Supress $True
+                    $ListOfGroups = @()
+                    foreach ($assignment in $expandeditem.assignments) {
+                        $ListOfGroups += ($Groups -match $assignment.target.groupId).displayName
+                    }
+                    Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $ListOfGroups -Supress $True -Verbose
+                }
             }
         }
     }
@@ -788,45 +793,48 @@ If ($Processpolicysets) {
     Update-AuthToken
 
     $class = "deviceAppManagement/policysets"
-    $responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Value
+    [array]$responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Value
 
     If ($Document) { Add-WordText -WordDocument $WordDocument -Text 'Policy Sets' -HeadingType Heading1 -Supress $True }
-    foreach ($response in $responsarray) {
-        $classpath = $class -replace "/", "\"
-        $expandeditem = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Id $response.id -OData '?$Expand=assignments,items'
-        If ($Export) { $JSONFileName = Export-JSONData -JSON $expandeditem -ExportPath "$ExportPath\$classpath" -Force }
+    If($responsarray.Count -gt 0)
+    {
+        foreach ($response in $responsarray) {
+            $classpath = $class -replace "/", "\"
+            $expandeditem = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Id $response.id -OData '?$Expand=assignments,items'
+            If ($Export) { $JSONFileName = Export-JSONData -JSON $expandeditem -ExportPath "$ExportPath\$classpath" -Force }
 
-        If ($Document) {    
+            If ($Document) {    
 
-            $subvalues = $response 
+                $subvalues = $response 
 
-            $hashtable = New-Object System.Collections.Specialized.OrderedDictionary
-            foreach ($prop in $subvalues.psobject.properties) {
-                $hashtable[(Format-DataToString $($prop.Name))] = (Format-DataToString $($prop.Value))
-            }
-            Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
-            Add-WordText -WordDocument $WordDocument -Text $response.displayName -HeadingType Heading3 -Supress $True
-            Add-WordTable -WordDocument $WordDocument -DataTable $hashtable -Design LightGridAccent1 -AutoFit Window  -Supress $True
-            If ($export) { 
-                Add-WordText -WordDocument $WordDocument -Text 'Exported files:' -Supress $True
-                Add-WordHyperLink -WordDocument $WordDocument -UrlText "$JSONFileName" -UrlLink "$ExportPath\$classpath\$JSONFileName" -Supress $True 
-                Add-WordHyperLink -WordDocument $WordDocument -UrlText "$($response.filename)" -UrlLink "$ExportPath\$classpath\$($response.filename)" -Supress $True
-            }
-        
-            If (($expandeditem.items).Count -ge 1) {
-                Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
-                Add-WordText -WordDocument $WordDocument -Text 'This sets includes the following items' -Supress $True
-                Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $expandeditem.items.displayname -Supress $True -Verbose
-            }
-
-            If (($expandeditem.assignments).Count -ge 1) {
-                Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
-                Add-WordText -WordDocument $WordDocument -Text 'This item have been assigned to the following groups' -Supress $True
-                $ListOfGroups = @()
-                foreach ($assignment in $expandeditem.assignments) {
-                    $ListOfGroups += ($Groups -match $assignment.target.groupId).displayName
+                $hashtable = New-Object System.Collections.Specialized.OrderedDictionary
+                foreach ($prop in $subvalues.psobject.properties) {
+                    $hashtable[(Format-DataToString $($prop.Name))] = (Format-DataToString $($prop.Value))
                 }
-                Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $ListOfGroups -Supress $True -Verbose
+                Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
+                Add-WordText -WordDocument $WordDocument -Text $response.displayName -HeadingType Heading3 -Supress $True
+                Add-WordTable -WordDocument $WordDocument -DataTable $hashtable -Design LightGridAccent1 -AutoFit Window  -Supress $True
+                If ($export) { 
+                    Add-WordText -WordDocument $WordDocument -Text 'Exported files:' -Supress $True
+                    Add-WordHyperLink -WordDocument $WordDocument -UrlText "$JSONFileName" -UrlLink "$ExportPath\$classpath\$JSONFileName" -Supress $True 
+                    Add-WordHyperLink -WordDocument $WordDocument -UrlText "$($response.filename)" -UrlLink "$ExportPath\$classpath\$($response.filename)" -Supress $True
+                }
+            
+                If (($expandeditem.items).Count -ge 1) {
+                    Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
+                    Add-WordText -WordDocument $WordDocument -Text 'This sets includes the following items' -Supress $True
+                    Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $expandeditem.items.displayname -Supress $True -Verbose
+                }
+
+                If (($expandeditem.assignments).Count -ge 1) {
+                    Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
+                    Add-WordText -WordDocument $WordDocument -Text 'This item have been assigned to the following groups' -Supress $True
+                    $ListOfGroups = @()
+                    foreach ($assignment in $expandeditem.assignments) {
+                        $ListOfGroups += ($Groups -match $assignment.target.groupId).displayName
+                    }
+                    Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $ListOfGroups -Supress $True -Verbose
+                }
             }
         }
     }
@@ -838,67 +846,70 @@ If ($ProcessgroupPolicyConfigurations) {
     Update-AuthToken
 
     $class = "deviceManagement/groupPolicyConfigurations"
-    $responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Value
+    [array]$responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Value
     $classpath = $class -replace "/", "\"
     If ($Document) { Add-WordText -WordDocument $WordDocument -Text 'Group Policy Configurations' -HeadingType Heading1 -Supress $True }
-    foreach ($response in $responsarray) {
-        
-        $expandeditem = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Id $response.id -OData '?$Expand=assignments'
-        
-        $pvJSONFileNames = @()
-        $gpcJSONFileNames = @()
+    If($responsarray.Count -gt 0)
+    {
+        foreach ($response in $responsarray) {
+            
+            $expandeditem = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Id $response.id -OData '?$Expand=assignments'
+            
+            $pvJSONFileNames = @()
+            $gpcJSONFileNames = @()
 
-        If ($Export) { $JSONFileName = Export-JSONData -JSON $expandeditem -ExportPath "$ExportPath\$classpath" -Force }
-        
-        $hashtable = New-Object System.Collections.Specialized.OrderedDictionary
-        
-        $dvclass = "deviceManagement/groupPolicyConfigurations/$($response.id)/definitionValues"
-        $gpcarr = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $dvclass -Value
-        
-        If ($Document) { Add-WordText -WordDocument $WordDocument -Text $response.displayName -HeadingType Heading3 -Supress $True }
+            If ($Export) { $JSONFileName = Export-JSONData -JSON $expandeditem -ExportPath "$ExportPath\$classpath" -Force }
+            
+            $hashtable = New-Object System.Collections.Specialized.OrderedDictionary
+            
+            $dvclass = "deviceManagement/groupPolicyConfigurations/$($response.id)/definitionValues"
+            $gpcarr = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $dvclass -Value
+            
+            If ($Document) { Add-WordText -WordDocument $WordDocument -Text $response.displayName -HeadingType Heading3 -Supress $True }
 
-        $i = 1
-        foreach ($gpc in $gpcarr) {
-            If ($Export) { $gpcJSONFileNames += Export-JSONData -JSON $gpc -ExportPath "$ExportPath\$classpath\definitionValues" -Filename "$($response.displayName)_dv_$i" -Force }
+            $i = 1
+            foreach ($gpc in $gpcarr) {
+                If ($Export) { $gpcJSONFileNames += Export-JSONData -JSON $gpc -ExportPath "$ExportPath\$classpath\definitionValues" -Filename "$($response.displayName)_dv_$i" -Force }
 
-            $gpcclass = "deviceManagement/groupPolicyConfigurations/$($response.id)/definitionValues/$($gpc.id)/presentationValues"
-            $pvarr = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $gpcclass -Value
-            $j = 1    
-            Foreach ($pv in $pvarr) {
-                If ($Export) { $pvJSONFileNames += Export-JSONData -JSON $pv -ExportPath "$ExportPath\$classpath\definitionValues\presentationValues" -Filename "$($response.displayName)_pv_$j" -Force }
-                
-                $pvclass = "deviceManagement/groupPolicyConfigurations/$($response.id)/definitionValues/$($gpc.id)/presentationValues/$($pv.id)/presentation"
-                $presentation = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $pvclass
-                
-                $value = $null
-                If (!$null -eq $pv.values) {
-                    $value = $pv.values
+                $gpcclass = "deviceManagement/groupPolicyConfigurations/$($response.id)/definitionValues/$($gpc.id)/presentationValues"
+                $pvarr = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $gpcclass -Value
+                $j = 1    
+                Foreach ($pv in $pvarr) {
+                    If ($Export) { $pvJSONFileNames += Export-JSONData -JSON $pv -ExportPath "$ExportPath\$classpath\definitionValues\presentationValues" -Filename "$($response.displayName)_pv_$j" -Force }
+                    
+                    $pvclass = "deviceManagement/groupPolicyConfigurations/$($response.id)/definitionValues/$($gpc.id)/presentationValues/$($pv.id)/presentation"
+                    $presentation = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $pvclass
+                    
+                    $value = $null
+                    If (!$null -eq $pv.values) {
+                        $value = $pv.values
+                    }
+                    elseif (!$null -eq $pv.value) {
+                        $value = $pv.value
+                    }
+                    $hashtable[(Format-DataToString $($presentation.label))] = (Format-DataToString $($value))
+                    $j++
                 }
-                elseif (!$null -eq $pv.value) {
-                    $value = $pv.value
-                }
-                $hashtable[(Format-DataToString $($presentation.label))] = (Format-DataToString $($value))
-                $j++
+                $i++
             }
-            $i++
-        }
-        If ($Document) {
-            Add-WordTable -WordDocument $WordDocument -DataTable $hashtable -Design LightGridAccent1 -AutoFit Window  -Supress $True
-            If ($export) { 
-                Add-WordText -WordDocument $WordDocument -Text 'Exported files:' -Supress $True
-                Add-WordHyperLink -WordDocument $WordDocument -UrlText "$JSONFileName" -UrlLink "$ExportPath\$classpath\$JSONFileName" -Supress $True
-                If (($gpcJSONFileNames).Count -ge 1) { Add-WordHyperLink -WordDocument $WordDocument -UrlText "$($response.displayName)_definitionValues" -UrlLink "$ExportPath\$classpath\definitionValues\" -Supress $True } 
-                If (($pvJSONFileNames).Count -ge 1) { Add-WordHyperLink -WordDocument $WordDocument -UrlText "$($response.displayName)_presentationValues" -UrlLink "$ExportPath\$classpath\definitionValues\presentationValues\" -Supress $True } 
-            }
-
-            If (($expandeditem.assignments).Count -ge 1) {
-                Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
-                Add-WordText -WordDocument $WordDocument -Text 'This item have been assigned to the following groups' -Supress $True
-                $ListOfGroups = @()
-                foreach ($assignment in $expandeditem.assignments) {
-                    $ListOfGroups += ($Groups -match $assignment.target.groupId).displayName
+            If ($Document) {
+                Add-WordTable -WordDocument $WordDocument -DataTable $hashtable -Design LightGridAccent1 -AutoFit Window  -Supress $True
+                If ($export) { 
+                    Add-WordText -WordDocument $WordDocument -Text 'Exported files:' -Supress $True
+                    Add-WordHyperLink -WordDocument $WordDocument -UrlText "$JSONFileName" -UrlLink "$ExportPath\$classpath\$JSONFileName" -Supress $True
+                    If (($gpcJSONFileNames).Count -ge 1) { Add-WordHyperLink -WordDocument $WordDocument -UrlText "$($response.displayName)_definitionValues" -UrlLink "$ExportPath\$classpath\definitionValues\" -Supress $True } 
+                    If (($pvJSONFileNames).Count -ge 1) { Add-WordHyperLink -WordDocument $WordDocument -UrlText "$($response.displayName)_presentationValues" -UrlLink "$ExportPath\$classpath\definitionValues\presentationValues\" -Supress $True } 
                 }
-                Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $ListOfGroups -Supress $True -Verbose
+
+                If (($expandeditem.assignments).Count -ge 1) {
+                    Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
+                    Add-WordText -WordDocument $WordDocument -Text 'This item have been assigned to the following groups' -Supress $True
+                    $ListOfGroups = @()
+                    foreach ($assignment in $expandeditem.assignments) {
+                        $ListOfGroups += ($Groups -match $assignment.target.groupId).displayName
+                    }
+                    Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $ListOfGroups -Supress $True -Verbose
+                }
             }
         }
     }
@@ -910,41 +921,44 @@ If ($ProcessdeviceManagementScripts) {
     Update-AuthToken
 
     $class = "deviceManagement/deviceManagementScripts"
-    $responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Value
+    [array]$responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Value
 
     If ($Document) { Add-WordText -WordDocument $WordDocument -Text 'Device Management Scripts' -HeadingType Heading1 -Supress $True }
-    foreach ($response in $responsarray) {
-        $classpath = $class -replace "/", "\"
-        $expandeditem = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Id $response.id -OData '?$Expand=assignments'
-        If ($Export) { 
-            $JSONFileName = Export-JSONData -JSON $response -ExportPath "$ExportPath\$classpath" -Force 
-            [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($expandeditem.scriptContent)) | Out-File -FilePath $(Join-Path -Path "$ExportPath\$classpath" -ChildPath "$($response.filename)")
-        }
-
-        If ($Document) {    
-
-            $subvalues = $response | select-object -ExcludeProperty scriptContent
-
-            $hashtable = New-Object System.Collections.Specialized.OrderedDictionary
-            foreach ($prop in $subvalues.psobject.properties) {
-                $hashtable[(Format-DataToString $($prop.Name))] = (Format-DataToString $($prop.Value))
+    If($responsarray.Count -gt 0)
+    {
+        foreach ($response in $responsarray) {
+            $classpath = $class -replace "/", "\"
+            $expandeditem = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Id $response.id -OData '?$Expand=assignments'
+            If ($Export) { 
+                $JSONFileName = Export-JSONData -JSON $response -ExportPath "$ExportPath\$classpath" -Force 
+                [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($expandeditem.scriptContent)) | Out-File -FilePath $(Join-Path -Path "$ExportPath\$classpath" -ChildPath "$($response.filename)")
             }
-            Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
-            Add-WordText -WordDocument $WordDocument -Text $response.displayName -HeadingType Heading3 -Supress $True
-            Add-WordTable -WordDocument $WordDocument -DataTable $hashtable -Design LightGridAccent1 -AutoFit Window -Supress $True
-            If ($export) { 
-                Add-WordText -WordDocument $WordDocument -Text 'Exported files:' -Supress $True
-                Add-WordHyperLink -WordDocument $WordDocument -UrlText "$JSONFileName" -UrlLink "$ExportPath\$classpath\$JSONFileName" -Supress $True 
-                Add-WordHyperLink -WordDocument $WordDocument -UrlText "$($response.filename)" -UrlLink "$ExportPath\$classpath\$($response.filename)" -Supress $True
-            }
-        
-            If (($expandeditem.assignments).Count -ge 1) {
-                Add-WordText -WordDocument $WordDocument -Text 'This item have been assigned to the following groups' -Supress $True
-                $ListOfGroups = @()
-                foreach ($assignment in $expandeditem.assignments) {
-                    $ListOfGroups += ($Groups -match $assignment.target.groupId).displayName
+
+            If ($Document) {    
+
+                $subvalues = $response | select-object -ExcludeProperty scriptContent
+
+                $hashtable = New-Object System.Collections.Specialized.OrderedDictionary
+                foreach ($prop in $subvalues.psobject.properties) {
+                    $hashtable[(Format-DataToString $($prop.Name))] = (Format-DataToString $($prop.Value))
                 }
-                Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $ListOfGroups -Supress $True -Verbose
+                Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
+                Add-WordText -WordDocument $WordDocument -Text $response.displayName -HeadingType Heading3 -Supress $True
+                Add-WordTable -WordDocument $WordDocument -DataTable $hashtable -Design LightGridAccent1 -AutoFit Window -Supress $True
+                If ($export) { 
+                    Add-WordText -WordDocument $WordDocument -Text 'Exported files:' -Supress $True
+                    Add-WordHyperLink -WordDocument $WordDocument -UrlText "$JSONFileName" -UrlLink "$ExportPath\$classpath\$JSONFileName" -Supress $True 
+                    Add-WordHyperLink -WordDocument $WordDocument -UrlText "$($response.filename)" -UrlLink "$ExportPath\$classpath\$($response.filename)" -Supress $True
+                }
+            
+                If (($expandeditem.assignments).Count -ge 1) {
+                    Add-WordText -WordDocument $WordDocument -Text 'This item have been assigned to the following groups' -Supress $True
+                    $ListOfGroups = @()
+                    foreach ($assignment in $expandeditem.assignments) {
+                        $ListOfGroups += ($Groups -match $assignment.target.groupId).displayName
+                    }
+                    Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $ListOfGroups -Supress $True -Verbose
+                }
             }
         }
     }
