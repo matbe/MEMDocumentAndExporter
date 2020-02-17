@@ -293,8 +293,6 @@ Function Get-GraphUri() {
         Write-Log "Response content:`n$responseBody" -LogLevel 3
         Write-Error "Request to $Uri failed with HTTP Status $($ex.Response.StatusCode) $($ex.Response.StatusDescription)"
         Write-Log "Request to $Uri failed with HTTP Status $($ex.Response.StatusCode) $($ex.Response.StatusDescription)" -LogLevel 3
-        write-host
-        break
     }
     return $response
 }
@@ -782,7 +780,7 @@ If ($ProcessdeviceEnrollmentConfigurations) { Invoke-GraphClass -Class "deviceMa
 If ($ProcessdeviceConfigurations) { Invoke-GraphClassExpand -Class "deviceManagement/deviceConfigurations" -Title 'Device Configurations' -Properties "displayName", "id", "lastModifiedDateTime", "description" -Value -GetLastChange:$DocumentLastChange}
 If ($ProcesswindowsAutopilotDeploymentProfiles) { Invoke-GraphClassExpand -Class "deviceManagement/windowsAutopilotDeploymentProfiles" -Title 'Windows Autopilot Deployment Profiles' -Value -GetLastChange:$DocumentLastChange}
 If ($ProcessmobileApps) { Invoke-GraphClassExpand -Class "deviceAppManagement/mobileApps" -Title 'Mobile Apps' -Properties "displayName", "id", "lastModifiedDateTime", "description" -Value -GetLastChange:$DocumentLastChange}
-If ($ProcessapplePushNotificationCertificate) { Invoke-GraphClass -Class "deviceManagement/applePushNotificationCertificate" -Title 'Apple Push Notification Certificate' }
+If ($ProcessapplePushNotificationCertificate) { Invoke-GraphClass -Class "deviceManagement/applePushNotificationCertificate" -Value -Title 'Apple Push Notification Certificate' }
 If ($ProcessvppTokens) { Invoke-GraphClassExpand -Class "deviceAppManagement/vppTokens" -Title 'VPP Tokens' -Value }
 
 #region policySets
