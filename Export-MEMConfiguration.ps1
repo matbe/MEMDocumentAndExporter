@@ -260,7 +260,8 @@ Function Get-GraphUri() {
         [Parameter(Mandatory = $True)] [string]$Class,
         [Parameter(Mandatory = $False)] [string]$Id = "",
         [Parameter(Mandatory = $False)] [string]$OData = "",
-        [Parameter(Mandatory = $False)] [switch]$Value
+        [Parameter(Mandatory = $False)] [switch]$Value,
+        [Parameter(Mandatory = $False)] [switch]$AuditData
     )        
     $baseuri = "https://graph.microsoft.com/"
     
@@ -276,15 +277,20 @@ Function Get-GraphUri() {
     Write-Log "Connecting to $uri"
     try {
         If ($Value) {
-            $Response = Invoke-RestMethod -Uri $uri -Headers $authToken -Method Get
-            $TempValue = ($Response).value
-            $ResponseNextLink = ($Response).'@odata.nextLink'
-                while ($null -ne $ResponseNextLink){
-                    $Response = Invoke-RestMethod -Uri $ResponseNextLink –Headers $authToken –Method Get
-                    $ResponseNextLink = ($Response).'@odata.nextLink'
-                    $TempValue += ($Response).value
-                }
-            $Response = $TempValue
+            if($AuditData){ # We do not want to use nextlink when quering auditdata since that will return everything
+                $Response = (Invoke-RestMethod -Uri $uri -Headers $authToken -Method Get).Value
+            }
+            else {
+                $Response = Invoke-RestMethod -Uri $uri -Headers $authToken -Method Get
+                $TempValue = ($Response).value
+                $ResponseNextLink = ($Response).'@odata.nextLink'
+                    while ($null -ne $ResponseNextLink){
+                        $Response = Invoke-RestMethod -Uri $ResponseNextLink –Headers $authToken –Method Get
+                        $ResponseNextLink = ($Response).'@odata.nextLink'
+                        $TempValue += ($Response).value
+                    }
+                $Response = $TempValue
+            }
         }
         else {
             $response = Invoke-RestMethod -Uri $uri -Headers $authToken -Method Get
@@ -360,7 +366,7 @@ function Invoke-GraphClass() {
                 If($GetLastChange)
                 {
                     $auditresponse = $null
-                    $auditresponse = Get-GraphUri -ApiVersion $script:graphApiVersion -Class "deviceManagement/auditEvents" -OData "?`$filter=resources/any(d:d/resourceId eq '$($response.id)')&`$top=1" -Value
+                    $auditresponse = Get-GraphUri -ApiVersion $script:graphApiVersion -Class "deviceManagement/auditEvents" -OData "?`$filter=resources/any(d:d/resourceId eq '$($response.id)')&`$top=1" -Value -AuditData
                     If($null -ne $auditresponse){
                         $hashtable["Last Change By"] = (Format-DataToString $($auditresponse.actor.userPrincipalName))
                         $hashtable["Last Change Action"] = (Format-DataToString $($auditresponse.activityOperationType))
@@ -441,7 +447,7 @@ function Invoke-GraphClassExpand() {
                 If($GetLastChange)
                 {
                     $auditresponse = $null
-                    $auditresponse = Get-GraphUri -ApiVersion $script:graphApiVersion -Class "deviceManagement/auditEvents" -OData "?`$filter=resources/any(d:d/resourceId eq '$($response.id)')&`$top=1" -Value
+                    $auditresponse = Get-GraphUri -ApiVersion $script:graphApiVersion -Class "deviceManagement/auditEvents" -OData "?`$filter=resources/any(d:d/resourceId eq '$($response.id)')&`$top=1" -Value -AuditData
                     If($null -ne $auditresponse){
                         $hashtable["Last Change By"] = (Format-DataToString $($auditresponse.actor.userPrincipalName))
                         $hashtable["Last Change Action"] = (Format-DataToString $($auditresponse.activityOperationType))
