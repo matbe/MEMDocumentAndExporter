@@ -21,10 +21,12 @@
   Skip confirmation to create folder if not existing.
 
 .NOTES
-  Version:        1.0
-  Author:         Mattias Benninge
-  Creation Date:  2020-01-07
-  Purpose/Change: Initial script development
+  Version:          1.01
+  Author:           Mattias Benninge
+  Creation Date:    2020-01-07
+  Purpose/Change:   Initial script development
+  Changelog:
+  - 1.01             Bugfixes and better support for assignments
 
 .EXAMPLE
     Export-MEMConfiguration.ps1
@@ -439,6 +441,7 @@ function Invoke-GraphClassExpand() {
                 }
                 else { $subvalues = $response }
 
+                $hashtable = $null
                 $hashtable = New-Object System.Collections.Specialized.OrderedDictionary
                 foreach ($prop in $subvalues.psobject.properties) {
                     $hashtable[(Format-DataToString $($prop.Name))] = (Format-DataToString $($prop.Value))
@@ -468,14 +471,101 @@ function Invoke-GraphClassExpand() {
                     Add-WordText -WordDocument $WordDocument -Text 'Exported file:' -Supress $True
                     Add-WordHyperLink -WordDocument $WordDocument -UrlText "$JSONFileName" -UrlLink "$ExportPath\$classpath\$JSONFileName" -Supress $True 
                 }
+
+                $expandeditem = $null
                 $expandeditem = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Id $response.id -OData '?$Expand=assignments'
                 If (($expandeditem.assignments).Count -ge 1) {
-                    Add-WordText -WordDocument $WordDocument -Text 'This item have been assigned to the following groups' -Supress $True
-                    $ListOfGroups = @()
-                    foreach ($assignment in $expandeditem.assignments) {
-                        $ListOfGroups += ($Groups -match $assignment.target.groupId).displayName
+                    If($expandeditem.assignments.intent -notlike '')
+                    {
+                     
+                        Add-WordText -WordDocument $WordDocument -Text 'This item have been assigned to the following groups' -Supress $True
+                        $ListOfGroupsAvailable = @()
+                        $ListOfGroupsRequired = @()
+                        $ListOfGroupsUninstall = @()
+                        $ListOfGroupsAvailableWithoutEnrollment = @()
+                        foreach ($assignment in $expandeditem.assignments) {
+                            If($null -ne $assignment.target.groupId){
+                                switch ($assignment.intent) {
+                                    'available' {$ListOfGroupsAvailable += ($Groups -match $assignment.target.groupId).displayName }
+                                    'required'{$ListOfGroupsRequired += ($Groups -match $assignment.target.groupId).displayName}
+                                    'uninstall'{$ListOfGroupsUninstall += ($Groups -match $assignment.target.groupId).displayName}
+                                    'availableWithoutEnrollment'{$ListOfGroupsAvailableWithoutEnrollment += ($Groups -match $assignment.target.groupId).displayName }
+                                    Default {}
+                                }
+                            }
+                            else {
+                                switch ($assignment.intent) {
+                                    'available' {
+                                        switch ($assignment.target.'@odata.type') {
+                                            '#microsoft.graph.allLicensedUsersAssignmentTarget' { $ListOfGroupsAvailable += "All Users" }
+                                            '#microsoft.graph.allDevicesAssignmentTarget' { $ListOfGroupsAvailable += "All Devices" }
+                                            Default {}
+                                            }
+                                        }
+                                    'required' {
+                                        switch ($assignment.target.'@odata.type') {
+                                            '#microsoft.graph.allLicensedUsersAssignmentTarget' { $ListOfGroupsRequired += "All Users" }
+                                            '#microsoft.graph.allDevicesAssignmentTarget' { $ListOfGroupsRequired += "All Devices" }
+                                            Default {}
+                                            }
+                                        }
+                                    'uninstall'{
+                                        switch ($assignment.target.'@odata.type') {
+                                            '#microsoft.graph.allLicensedUsersAssignmentTarget' { $ListOfGroupsUninstall += "All Users" }
+                                            '#microsoft.graph.allDevicesAssignmentTarget' { $ListOfGroupsUninstall += "All Devices" }
+                                            Default {}
+                                            }
+                                        }
+                                    'availableWithoutEnrollment' {
+                                        switch ($assignment.target.'@odata.type') {
+                                            '#microsoft.graph.allLicensedUsersAssignmentTarget' { $ListOfGroupsAvailableWithoutEnrollment += "All Users" }
+                                            '#microsoft.graph.allDevicesAssignmentTarget' { $ListOfGroupsAvailableWithoutEnrollment += "All Devices" }
+                                            Default {}
+                                            }
+                                        }
+                                    Default {}
+                                }
+                             }
+                        }
+
+                        If($ListOfGroupsAvailable -ge 1){
+                            Add-WordText -WordDocument $WordDocument -Text 'Available' -Supress $True
+                            Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $ListOfGroupsAvailable -Supress $True -Verbose
+                        }
+                        If($ListOfGroupsRequired -ge 1){
+                        Add-WordText -WordDocument $WordDocument -Text 'Required' -Supress $True
+                            Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $ListOfGroupsRequired -Supress $True -Verbose
+                        }
+                        If($ListOfGroupsUninstall -ge 1){ 
+                            Add-WordText -WordDocument $WordDocument -Text 'Uninstall' -Supress $True
+                            Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $ListOfGroupsUninstall -Supress $True -Verbose
+                        }
+                        If($ListOfGroupsAvailableWithoutEnrollment -ge 1){ 
+                            Add-WordText -WordDocument $WordDocument -Text 'Available Without Enrollment' -Supress $True
+                            Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $ListOfGroupsAvailableWithoutEnrollment -Supress $True -Verbose
+                        }
+
                     }
-                    Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $ListOfGroups -Supress $True -Verbose
+                    else {
+                        Add-WordText -WordDocument $WordDocument -Text 'This item have been assigned to the following groups' -Supress $True
+                        
+                        $ListOfGroups = @()
+                        foreach ($assignment in $expandeditem.assignments) {
+                            If($null -ne $assignment.target.groupId){
+                                $ListOfGroups += ($Groups -match $assignment.target.groupId).displayName
+                            }
+                            else {
+                                switch ($assignment.target.'@odata.type') {
+                                    '#microsoft.graph.allLicensedUsersAssignmentTarget' { $ListOfGroups += "All Users" }
+                                    '#microsoft.graph.allDevicesAssignmentTarget' { $ListOfGroups += "All Devices" }
+                                    Default {}
+                                }
+                            }
+                            
+                        }
+                        Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $ListOfGroups -Supress $True -Verbose 
+                    }
+
                 }
             }
         }
@@ -799,8 +889,9 @@ If ($ProcessdeviceEnrollmentConfigurations) { Invoke-GraphClass -Class "deviceMa
 If ($ProcessdeviceConfigurations) { Invoke-GraphClassExpand -Class "deviceManagement/deviceConfigurations" -Title 'Device Configurations' -Properties "displayName", "id", "lastModifiedDateTime", "description" -Value -GetLastChange:$DocumentLastChange}
 If ($ProcesswindowsAutopilotDeploymentProfiles) { Invoke-GraphClassExpand -Class "deviceManagement/windowsAutopilotDeploymentProfiles" -Title 'Windows Autopilot Deployment Profiles' -Value -GetLastChange:$DocumentLastChange}
 If ($ProcessmobileApps) { Invoke-GraphClassExpand -Class "deviceAppManagement/mobileApps" -Title 'Mobile Apps' -Properties "displayName", "id", "lastModifiedDateTime", "description" -Value -GetLastChange:$DocumentLastChange}
-If ($ProcessapplePushNotificationCertificate) { Invoke-GraphClass -Class "deviceManagement/applePushNotificationCertificate" -Value -Title 'Apple Push Notification Certificate' }
-If ($ProcessvppTokens) { Invoke-GraphClassExpand -Class "deviceAppManagement/vppTokens" -Title 'VPP Tokens' -Value }
+If ($ProcessapplePushNotificationCertificate) { Invoke-GraphClass -Class "deviceManagement/applePushNotificationCertificate" -Title 'Apple Push Notification Certificate' -PropForFileName "@odata.type" -Value}
+If ($ProcessvppTokens) { Invoke-GraphClassExpand -Class "deviceAppManagement/vppTokens" -Title 'VPP Tokens' -PropForFileName "@odata.type" -Value }
+
 
 #region policySets
 If ($Processpolicysets) {
@@ -814,7 +905,10 @@ If ($Processpolicysets) {
     {
         foreach ($response in $responsarray) {
             $classpath = $class -replace "/", "\"
+            
+            $expandeditem = $null
             $expandeditem = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Id $response.id -OData '?$Expand=assignments,items'
+            
             If ($Export) { $JSONFileName = Export-JSONData -JSON $expandeditem -ExportPath "$ExportPath\$classpath" -Force }
 
             If ($Document) {    
@@ -866,6 +960,7 @@ If ($ProcessgroupPolicyConfigurations) {
     {
         foreach ($response in $responsarray) {
             
+            $expandeditem = $null
             $expandeditem = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Id $response.id -OData '?$Expand=assignments'
             
             $pvJSONFileNames = @()
@@ -941,6 +1036,8 @@ If ($ProcessdeviceManagementScripts) {
     {
         foreach ($response in $responsarray) {
             $classpath = $class -replace "/", "\"
+
+            $expandeditem = $null
             $expandeditem = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Id $response.id -OData '?$Expand=assignments'
             If ($Export) { 
                 $JSONFileName = Export-JSONData -JSON $response -ExportPath "$ExportPath\$classpath" -Force 
