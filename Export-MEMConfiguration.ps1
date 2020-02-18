@@ -305,6 +305,7 @@ Function Get-GraphUri() {
         $reader.BaseStream.Position = 0
         $reader.DiscardBufferedData()
         $responseBody = $reader.ReadToEnd();
+        $response = $null
         Write-Host "Response content:`n$responseBody" -f Red
         Write-Log "Response content:`n$responseBody" -LogLevel 3
         Write-Error "Request to $Uri failed with HTTP Status $($ex.Response.StatusCode) $($ex.Response.StatusDescription)"
