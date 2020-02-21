@@ -1,4 +1,4 @@
-# Microsoft Endpoint Manager (aka Intune) Document And Export tool
+# Microsoft Endpoint Manager ( aka Intune ) Documentation And Export tool
 
 This repository contains PowerShell scripts to Document and Export settings from a Microsoft Endpoint Manager Tenant.
 
