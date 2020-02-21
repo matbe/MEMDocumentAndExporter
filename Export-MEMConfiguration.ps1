@@ -277,6 +277,7 @@ Function Get-GraphUri() {
     If ($OData -ne "") { $uri = $uri + $OData }
     Write-Verbose "Connecting to $uri"
     Write-Log "Connecting to $uri"
+    Update-AuthToken
     try {
         If ($Value) {
             if($AuditData){ # We do not want to use nextlink when quering auditdata since that will return everything
@@ -334,8 +335,6 @@ function Invoke-GraphClass() {
         [Parameter(Mandatory = $False)][switch]$Value,
         [Parameter(Mandatory = $False)][switch]$GetLastChange
     )
-
-    Update-AuthToken
 
     If ($Value) { [array]$responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Value }
     else { [array]$responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class }
@@ -416,8 +415,6 @@ function Invoke-GraphClassExpand() {
         [Parameter(Mandatory = $False)][switch]$Value,
         [Parameter(Mandatory = $False)][switch]$GetLastChange
     )
-
-    Update-AuthToken
 
     If ($Value) { [array]$responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Value }
     else { [array]$responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class }
@@ -847,7 +844,6 @@ $groups = Get-GraphUri -ApiVersion $script:graphApiVersion -Class "groups" -Valu
 
 #region managedDeviceOverview
 If ($ProcessmanagedDeviceOverview -and $Document) { #No point in exporting this class
-    Update-AuthToken
 
     $class = "deviceManagement/managedDeviceOverview"
     $DeviceOverview = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class
@@ -896,7 +892,6 @@ If ($ProcessvppTokens) { Invoke-GraphClassExpand -Class "deviceAppManagement/vpp
 
 #region policySets
 If ($Processpolicysets) {
-    Update-AuthToken
 
     $class = "deviceAppManagement/policysets"
     [array]$responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Value
@@ -951,7 +946,6 @@ If ($Processpolicysets) {
 #endregion policySets
 #region groupPolicyConfigurations
 If ($ProcessgroupPolicyConfigurations) {
-    Update-AuthToken
 
     $class = "deviceManagement/groupPolicyConfigurations"
     [array]$responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Value
@@ -1027,7 +1021,6 @@ If ($ProcessgroupPolicyConfigurations) {
 #endregion groupPolicyConfigurations
 #region exportscripts
 If ($ProcessdeviceManagementScripts) {
-    Update-AuthToken
 
     $class = "deviceManagement/deviceManagementScripts"
     [array]$responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Value
