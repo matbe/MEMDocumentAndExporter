@@ -888,7 +888,7 @@ If ($ProcessdeviceConfigurations) { Invoke-GraphClassExpand -Class "deviceManage
 If ($ProcesswindowsAutopilotDeploymentProfiles) { Invoke-GraphClassExpand -Class "deviceManagement/windowsAutopilotDeploymentProfiles" -Title 'Windows Autopilot Deployment Profiles' -Value -GetLastChange:$DocumentLastChange}
 If ($ProcessmobileApps) { Invoke-GraphClassExpand -Class "deviceAppManagement/mobileApps" -Title 'Mobile Apps' -Properties "displayName", "id", "lastModifiedDateTime", "description" -Value -GetLastChange:$DocumentLastChange}
 If ($ProcessapplePushNotificationCertificate) { Invoke-GraphClass -Class "deviceManagement/applePushNotificationCertificate" -Title 'Apple Push Notification Certificate' -PropForFileName "@odata.type" -Value}
-If ($ProcessvppTokens) { Invoke-GraphClass -Class "deviceAppManagement/vppTokens" -Title 'VPP Tokens' -PropForFileName "@odata.type" -Value }
+If ($ProcessvppTokens) { Invoke-GraphClass -Class "deviceAppManagement/vppTokens" -Title 'VPP Tokens' -Value }
 
 
 #region policySets
