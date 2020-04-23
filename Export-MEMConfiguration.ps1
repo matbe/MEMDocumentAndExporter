@@ -33,7 +33,7 @@
     Export-MEMConfiguration.ps1
 
 #>
-#Requires -Modules AzureAD,PSWriteWord
+#Requires -Modules PSWriteWord
 #region --------------------------------------------------[Script Parameters]------------------------------------------------------
 Param (
     [Parameter(Mandatory = $False)] [string]$Tenant = "",
