@@ -21,13 +21,14 @@
   Skip confirmation to create folder if not existing.
 
 .NOTES
-  Version:          1.01
+  Version:          1.1
   Author:           Mattias Benninge
   Creation Date:    2020-01-07
   Purpose/Change:   Initial script development
   Changelog:
   - 1.01             Bugfixes and better support for assignments
   - 1.02             Fix timeouts in large tenants and VPP-tokens, reported by user @portaldotjay
+  - 1.1              Fix export of groupPolicyConfigurations and added support for "Last Changed by" on more items
 
 .EXAMPLE
     Export-MEMConfiguration.ps1
@@ -281,18 +282,19 @@ Function Get-GraphUri() {
     Update-AuthToken
     try {
         If ($Value) {
-            if($AuditData){ # We do not want to use nextlink when quering auditdata since that will return everything
+            if ($AuditData) {
+                # We do not want to use nextlink when quering auditdata since that will return everything
                 $Response = (Invoke-RestMethod -Uri $uri -Headers $authToken -Method Get).Value
             }
             else {
                 $Response = Invoke-RestMethod -Uri $uri -Headers $authToken -Method Get
                 $TempValue = ($Response).value
                 $ResponseNextLink = ($Response).'@odata.nextLink'
-                    while ($null -ne $ResponseNextLink){
-                        $Response = Invoke-RestMethod -Uri $ResponseNextLink –Headers $authToken –Method Get
-                        $ResponseNextLink = ($Response).'@odata.nextLink'
-                        $TempValue += ($Response).value
-                    }
+                while ($null -ne $ResponseNextLink) {
+                    $Response = Invoke-RestMethod -Uri $ResponseNextLink –Headers $authToken –Method Get
+                    $ResponseNextLink = ($Response).'@odata.nextLink'
+                    $TempValue += ($Response).value
+                }
                 $Response = $TempValue
             }
         }
@@ -342,8 +344,7 @@ function Invoke-GraphClass() {
 
     If ($Document) { Add-WordText -WordDocument $WordDocument -Text $Title -HeadingType Heading1 -Supress $True }
 
-    If($responsarray.Count -gt 0)
-    {
+    If ($responsarray.Count -gt 0) {
         foreach ($response in $responsarray) {
             $classpath = $class -replace "/", "\"
             If ($Export) { 
@@ -366,11 +367,10 @@ function Invoke-GraphClass() {
                     $hashtable[(Format-DataToString $($prop.Name))] = (Format-DataToString $($prop.Value))
                 }
         
-                If($GetLastChange)
-                {
+                If ($GetLastChange) {
                     $auditresponse = $null
                     $auditresponse = Get-GraphUri -ApiVersion $script:graphApiVersion -Class "deviceManagement/auditEvents" -OData "?`$filter=resources/any(d:d/resourceId eq '$($response.id)')&`$top=1" -Value -AuditData
-                    If($null -ne $auditresponse){
+                    If ($null -ne $auditresponse) {
                         $hashtable["Last Change By"] = (Format-DataToString $($auditresponse.actor.userPrincipalName))
                         $hashtable["Last Change Action"] = (Format-DataToString $($auditresponse.activityOperationType))
                     }
@@ -421,8 +421,7 @@ function Invoke-GraphClassExpand() {
     else { [array]$responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class }
 
     If ($Document) { Add-WordText -WordDocument $WordDocument -Text $Title -HeadingType Heading1 -Supress $True }
-    If($responsarray.Count -gt 0)
-    {
+    If ($responsarray.Count -gt 0) {
         foreach ($response in $responsarray) {
             $classpath = $class -replace "/", "\"
             If ($Export) { 
@@ -446,11 +445,10 @@ function Invoke-GraphClassExpand() {
                     $hashtable[(Format-DataToString $($prop.Name))] = (Format-DataToString $($prop.Value))
                 }
 
-                If($GetLastChange)
-                {
+                If ($GetLastChange) {
                     $auditresponse = $null
                     $auditresponse = Get-GraphUri -ApiVersion $script:graphApiVersion -Class "deviceManagement/auditEvents" -OData "?`$filter=resources/any(d:d/resourceId eq '$($response.id)')&`$top=1" -Value -AuditData
-                    If($null -ne $auditresponse){
+                    If ($null -ne $auditresponse) {
                         $hashtable["Last Change By"] = (Format-DataToString $($auditresponse.actor.userPrincipalName))
                         $hashtable["Last Change Action"] = (Format-DataToString $($auditresponse.activityOperationType))
                     }
@@ -474,8 +472,7 @@ function Invoke-GraphClassExpand() {
                 $expandeditem = $null
                 $expandeditem = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Id $response.id -OData '?$Expand=assignments'
                 If (($expandeditem.assignments).Count -ge 1) {
-                    If($expandeditem.assignments.intent -notlike '')
-                    {
+                    If ($expandeditem.assignments.intent -notlike '') {
                      
                         Add-WordText -WordDocument $WordDocument -Text 'This item have been assigned to the following groups' -Supress $True
                         $ListOfGroupsAvailable = @()
@@ -483,12 +480,12 @@ function Invoke-GraphClassExpand() {
                         $ListOfGroupsUninstall = @()
                         $ListOfGroupsAvailableWithoutEnrollment = @()
                         foreach ($assignment in $expandeditem.assignments) {
-                            If($null -ne $assignment.target.groupId){
+                            If ($null -ne $assignment.target.groupId) {
                                 switch ($assignment.intent) {
-                                    'available' {$ListOfGroupsAvailable += ($Groups -match $assignment.target.groupId).displayName }
-                                    'required'{$ListOfGroupsRequired += ($Groups -match $assignment.target.groupId).displayName}
-                                    'uninstall'{$ListOfGroupsUninstall += ($Groups -match $assignment.target.groupId).displayName}
-                                    'availableWithoutEnrollment'{$ListOfGroupsAvailableWithoutEnrollment += ($Groups -match $assignment.target.groupId).displayName }
+                                    'available' { $ListOfGroupsAvailable += ($Groups -match $assignment.target.groupId).displayName }
+                                    'required' { $ListOfGroupsRequired += ($Groups -match $assignment.target.groupId).displayName }
+                                    'uninstall' { $ListOfGroupsUninstall += ($Groups -match $assignment.target.groupId).displayName }
+                                    'availableWithoutEnrollment' { $ListOfGroupsAvailableWithoutEnrollment += ($Groups -match $assignment.target.groupId).displayName }
                                     Default {}
                                 }
                             }
@@ -499,47 +496,47 @@ function Invoke-GraphClassExpand() {
                                             '#microsoft.graph.allLicensedUsersAssignmentTarget' { $ListOfGroupsAvailable += "All Users" }
                                             '#microsoft.graph.allDevicesAssignmentTarget' { $ListOfGroupsAvailable += "All Devices" }
                                             Default {}
-                                            }
                                         }
+                                    }
                                     'required' {
                                         switch ($assignment.target.'@odata.type') {
                                             '#microsoft.graph.allLicensedUsersAssignmentTarget' { $ListOfGroupsRequired += "All Users" }
                                             '#microsoft.graph.allDevicesAssignmentTarget' { $ListOfGroupsRequired += "All Devices" }
                                             Default {}
-                                            }
                                         }
-                                    'uninstall'{
+                                    }
+                                    'uninstall' {
                                         switch ($assignment.target.'@odata.type') {
                                             '#microsoft.graph.allLicensedUsersAssignmentTarget' { $ListOfGroupsUninstall += "All Users" }
                                             '#microsoft.graph.allDevicesAssignmentTarget' { $ListOfGroupsUninstall += "All Devices" }
                                             Default {}
-                                            }
                                         }
+                                    }
                                     'availableWithoutEnrollment' {
                                         switch ($assignment.target.'@odata.type') {
                                             '#microsoft.graph.allLicensedUsersAssignmentTarget' { $ListOfGroupsAvailableWithoutEnrollment += "All Users" }
                                             '#microsoft.graph.allDevicesAssignmentTarget' { $ListOfGroupsAvailableWithoutEnrollment += "All Devices" }
                                             Default {}
-                                            }
                                         }
+                                    }
                                     Default {}
                                 }
-                             }
+                            }
                         }
 
-                        If($ListOfGroupsAvailable -ge 1){
+                        If ($ListOfGroupsAvailable -ge 1) {
                             Add-WordText -WordDocument $WordDocument -Text 'Available' -Supress $True
                             Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $ListOfGroupsAvailable -Supress $True -Verbose
                         }
-                        If($ListOfGroupsRequired -ge 1){
-                        Add-WordText -WordDocument $WordDocument -Text 'Required' -Supress $True
+                        If ($ListOfGroupsRequired -ge 1) {
+                            Add-WordText -WordDocument $WordDocument -Text 'Required' -Supress $True
                             Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $ListOfGroupsRequired -Supress $True -Verbose
                         }
-                        If($ListOfGroupsUninstall -ge 1){ 
+                        If ($ListOfGroupsUninstall -ge 1) { 
                             Add-WordText -WordDocument $WordDocument -Text 'Uninstall' -Supress $True
                             Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $ListOfGroupsUninstall -Supress $True -Verbose
                         }
-                        If($ListOfGroupsAvailableWithoutEnrollment -ge 1){ 
+                        If ($ListOfGroupsAvailableWithoutEnrollment -ge 1) { 
                             Add-WordText -WordDocument $WordDocument -Text 'Available Without Enrollment' -Supress $True
                             Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $ListOfGroupsAvailableWithoutEnrollment -Supress $True -Verbose
                         }
@@ -550,7 +547,7 @@ function Invoke-GraphClassExpand() {
                         
                         $ListOfGroups = @()
                         foreach ($assignment in $expandeditem.assignments) {
-                            If($null -ne $assignment.target.groupId){
+                            If ($null -ne $assignment.target.groupId) {
                                 $ListOfGroups += ($Groups -match $assignment.target.groupId).displayName
                             }
                             else {
@@ -844,11 +841,12 @@ If ($Document) {
 $groups = Get-GraphUri -ApiVersion $script:graphApiVersion -Class "groups" -Value
 
 #region managedDeviceOverview
-If ($ProcessmanagedDeviceOverview -and $Document) { #No point in exporting this class
+If ($ProcessmanagedDeviceOverview -and $Document) {
+    #No point in exporting this class
 
     $class = "deviceManagement/managedDeviceOverview"
     $DeviceOverview = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class
-    $DeviceTable = $DeviceOverview | Select-Object -Property enrolledDeviceCount,mdmEnrolledCount,dualEnrolledDeviceCount,managedDeviceModelsAndManufacturers,lastModifiedDateTime
+    $DeviceTable = $DeviceOverview | Select-Object -Property enrolledDeviceCount, mdmEnrolledCount, dualEnrolledDeviceCount, managedDeviceModelsAndManufacturers, lastModifiedDateTime
    
     $DThashtable = New-Object System.Collections.Specialized.OrderedDictionary
     foreach ($prop in $DeviceTable.psobject.properties) {
@@ -882,12 +880,12 @@ If ($ProcessmanagedDeviceOverview -and $Document) { #No point in exporting this 
 
 # Get all classes that dont need extra treatment.
 If ($ProcesstermsAndConditions) { Invoke-GraphClass -Class "deviceManagement/termsAndConditions" -Title 'Terms and Conditions' -PropForFileName "@odata.type" -Value }
-If ($ProcessdeviceCompliancePolicies) { Invoke-GraphClassExpand -Class "deviceManagement/deviceCompliancePolicies" -Title 'Device Compliance Policies' -Value -GetLastChange:$DocumentLastChange}
-If ($ProcessdeviceEnrollmentConfigurations) { Invoke-GraphClass -Class "deviceManagement/deviceEnrollmentConfigurations" -Title 'Device Enrollment Configurations' -PropForFileName "@odata.type" -Value -GetLastChange:$DocumentLastChange}
-If ($ProcessdeviceConfigurations) { Invoke-GraphClassExpand -Class "deviceManagement/deviceConfigurations" -Title 'Device Configurations' -Properties "displayName", "id", "lastModifiedDateTime", "description" -Value -GetLastChange:$DocumentLastChange}
-If ($ProcesswindowsAutopilotDeploymentProfiles) { Invoke-GraphClassExpand -Class "deviceManagement/windowsAutopilotDeploymentProfiles" -Title 'Windows Autopilot Deployment Profiles' -Value -GetLastChange:$DocumentLastChange}
-If ($ProcessmobileApps) { Invoke-GraphClassExpand -Class "deviceAppManagement/mobileApps" -Title 'Mobile Apps' -Properties "displayName", "id", "lastModifiedDateTime", "description" -Value -GetLastChange:$DocumentLastChange}
-If ($ProcessapplePushNotificationCertificate) { Invoke-GraphClass -Class "deviceManagement/applePushNotificationCertificate" -Title 'Apple Push Notification Certificate' -PropForFileName "@odata.type" -Value}
+If ($ProcessdeviceCompliancePolicies) { Invoke-GraphClassExpand -Class "deviceManagement/deviceCompliancePolicies" -Title 'Device Compliance Policies' -Value -GetLastChange:$DocumentLastChange }
+If ($ProcessdeviceEnrollmentConfigurations) { Invoke-GraphClass -Class "deviceManagement/deviceEnrollmentConfigurations" -Title 'Device Enrollment Configurations' -PropForFileName "@odata.type" -Value -GetLastChange:$DocumentLastChange }
+If ($ProcessdeviceConfigurations) { Invoke-GraphClassExpand -Class "deviceManagement/deviceConfigurations" -Title 'Device Configurations' -Properties "displayName", "id", "lastModifiedDateTime", "description" -Value -GetLastChange:$DocumentLastChange }
+If ($ProcesswindowsAutopilotDeploymentProfiles) { Invoke-GraphClassExpand -Class "deviceManagement/windowsAutopilotDeploymentProfiles" -Title 'Windows Autopilot Deployment Profiles' -Value -GetLastChange:$DocumentLastChange }
+If ($ProcessmobileApps) { Invoke-GraphClassExpand -Class "deviceAppManagement/mobileApps" -Title 'Mobile Apps' -Properties "displayName", "id", "lastModifiedDateTime", "description" -Value -GetLastChange:$DocumentLastChange }
+If ($ProcessapplePushNotificationCertificate) { Invoke-GraphClass -Class "deviceManagement/applePushNotificationCertificate" -Title 'Apple Push Notification Certificate' -PropForFileName "@odata.type" -Value }
 If ($ProcessvppTokens) { Invoke-GraphClass -Class "deviceAppManagement/vppTokens" -Title 'VPP Tokens' -Value }
 
 
@@ -898,8 +896,7 @@ If ($Processpolicysets) {
     [array]$responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Value
 
     If ($Document) { Add-WordText -WordDocument $WordDocument -Text 'Policy Sets' -HeadingType Heading1 -Supress $True }
-    If($responsarray.Count -gt 0)
-    {
+    If ($responsarray.Count -gt 0) {
         foreach ($response in $responsarray) {
             $classpath = $class -replace "/", "\"
             
@@ -916,6 +913,14 @@ If ($Processpolicysets) {
                 foreach ($prop in $subvalues.psobject.properties) {
                     $hashtable[(Format-DataToString $($prop.Name))] = (Format-DataToString $($prop.Value))
                 }
+
+                $auditresponse = $null
+                $auditresponse = Get-GraphUri -ApiVersion $script:graphApiVersion -Class "deviceManagement/auditEvents" -OData "?`$filter=resources/any(d:d/resourceId eq '$($response.id)')&`$top=1" -Value -AuditData
+                If ($null -ne $auditresponse) {
+                    $hashtable["Last Change By"] = (Format-DataToString $($auditresponse.actor.userPrincipalName))
+                    $hashtable["Last Change Action"] = (Format-DataToString $($auditresponse.activityOperationType))
+                }
+
                 Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
                 Add-WordText -WordDocument $WordDocument -Text $response.displayName -HeadingType Heading3 -Supress $True
                 Add-WordTable -WordDocument $WordDocument -DataTable $hashtable -Design LightGridAccent1 -AutoFit Window  -Supress $True
@@ -952,59 +957,99 @@ If ($ProcessgroupPolicyConfigurations) {
     [array]$responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Value
     $classpath = $class -replace "/", "\"
     If ($Document) { Add-WordText -WordDocument $WordDocument -Text 'Group Policy Configurations' -HeadingType Heading1 -Supress $True }
-    If($responsarray.Count -gt 0)
-    {
+    If ($responsarray.Count -gt 0) {
         foreach ($response in $responsarray) {
-            
             $expandeditem = $null
             $expandeditem = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Id $response.id -OData '?$Expand=assignments'
-            
-            $pvJSONFileNames = @()
+                
             $gpcJSONFileNames = @()
-
-            If ($Export) { $JSONFileName = Export-JSONData -JSON $expandeditem -ExportPath "$ExportPath\$classpath" -Force }
-            
+    
+            $foldername = $($response.displayName) -replace '\<|\>|:|"|/|\\|\||\?|\*', "_"
+    
+            If ($Export) { $JSONFileName = Export-JSONData -JSON $expandeditem -ExportPath "$ExportPath\$classpath" -Filename "$($response.displayName)_assignments" -Force }
+                
             $hashtable = New-Object System.Collections.Specialized.OrderedDictionary
-            
+                
             $dvclass = "deviceManagement/groupPolicyConfigurations/$($response.id)/definitionValues"
             $gpcarr = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $dvclass -Value
-            
+                
             If ($Document) { Add-WordText -WordDocument $WordDocument -Text $response.displayName -HeadingType Heading3 -Supress $True }
-
+    
             $i = 1
             foreach ($gpc in $gpcarr) {
-                If ($Export) { $gpcJSONFileNames += Export-JSONData -JSON $gpc -ExportPath "$ExportPath\$classpath\definitionValues" -Filename "$($response.displayName)_dv_$i" -Force }
-
                 $gpcclass = "deviceManagement/groupPolicyConfigurations/$($response.id)/definitionValues/$($gpc.id)/presentationValues"
+                $pvarr = @()
                 $pvarr = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $gpcclass -Value
-                $j = 1    
-                Foreach ($pv in $pvarr) {
-                    If ($Export) { $pvJSONFileNames += Export-JSONData -JSON $pv -ExportPath "$ExportPath\$classpath\definitionValues\presentationValues" -Filename "$($response.displayName)_pv_$j" -Force }
                     
-                    $pvclass = "deviceManagement/groupPolicyConfigurations/$($response.id)/definitionValues/$($gpc.id)/presentationValues/$($pv.id)/presentation"
-                    $presentation = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $pvclass
+                $definitionclass = "deviceManagement/groupPolicyConfigurations/$($response.id)/definitionValues/$($gpc.id)/definition"
+                $definition = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $definitionclass
+                $value = $null
                     
-                    $value = $null
-                    If (!$null -eq $pv.values) {
-                        $value = $pv.values
+                If ($export) {
+                    $ExportObject = New-Object -TypeName PSCustomObject
+                    $ExportObject | Add-Member -MemberType NoteProperty -Name "definition@odata.bind" -Value "https://graph.microsoft.com/beta/deviceManagement/groupPolicyDefinitions('$($definition.id)')"
+                    $ExportObject | Add-Member -MemberType NoteProperty -Name "enabled" -value $($gpc.enabled.tostring().tolower())
+                }
+    
+                $j = 1
+                If ($pvarr) {
+                    $presentationValues = @()
+                    Foreach ($pv in $pvarr) {
+    
+                        $pvclass = "deviceManagement/groupPolicyConfigurations/$($response.id)/definitionValues/$($gpc.id)/presentationValues/$($pv.id)/presentation"
+                        $presentation = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $pvclass
+                        
+                        If ($Export) {
+                            $presentationObject = $pv | Select-Object -Property * -ExcludeProperty id, createdDateTime, lastModifiedDateTime, version
+                            $presentationObject | Add-Member -MemberType NoteProperty -Name "presentation@odata.bind" -Value "https://graph.microsoft.com/beta/deviceManagement/groupPolicyDefinitions('$($definition.id)')/presentations('$($presentation.id)')"
+                            $presentationValues += $presentationObject
+                        }
+    
+                        $value = $null
+                        If (!$null -eq $pv.values) {
+                            $value = $pv.values
+                        }
+                        elseif (!$null -eq $pv.value) {
+                            $value = $pv.value
+                        }
+                        $hashtable[(Format-DataToString $($presentation.label))] = (Format-DataToString $($value))
+                        $j++
                     }
-                    elseif (!$null -eq $pv.value) {
-                        $value = $pv.value
+                    
+                    If ($Export) { 
+                        $ExportObject | Add-Member -MemberType NoteProperty -Name "presentationValues" -Value $presentationValues
+                        $gpcJSONFileNames += Export-JSONData -JSON $ExportObject -ExportPath "$ExportPath\$classpath\$foldername" -Filename "$($definition.displayName)" -Force 
                     }
-                    $hashtable[(Format-DataToString $($presentation.label))] = (Format-DataToString $($value))
-                    $j++
+                } 
+                else {
+                    If ($Export) { 
+                        $gpcJSONFileNames += Export-JSONData -JSON $ExportObject -ExportPath "$ExportPath\$classpath\$foldername" -Filename "$($definition.displayName)" -Force 
+                    }
+                    [string]$enabledstring = [string]$gpc.enabled
+                    If (!$null -eq $enabledstring) {
+                        $value = "enabled=$enabledstring"
+                    }
+    
+                    $hashtable[(Format-DataToString $($definition.displayName))] = (Format-DataToString $($value))
                 }
                 $i++
             }
             If ($Document) {
+
+                $auditresponse = $null
+                $auditresponse = Get-GraphUri -ApiVersion $script:graphApiVersion -Class "deviceManagement/auditEvents" -OData "?`$filter=resources/any(d:d/resourceId eq '$($response.id)')&`$top=1" -Value -AuditData
+                If ($null -ne $auditresponse) {
+                    $hashtable["Last Change By"] = (Format-DataToString $($auditresponse.actor.userPrincipalName))
+                    $hashtable["Last Change Action"] = (Format-DataToString $($auditresponse.activityOperationType))
+                }
+
                 Add-WordTable -WordDocument $WordDocument -DataTable $hashtable -Design LightGridAccent1 -AutoFit Window  -Supress $True
                 If ($export) { 
                     Add-WordText -WordDocument $WordDocument -Text 'Exported files:' -Supress $True
-                    Add-WordHyperLink -WordDocument $WordDocument -UrlText "$JSONFileName" -UrlLink "$ExportPath\$classpath\$JSONFileName" -Supress $True
-                    If (($gpcJSONFileNames).Count -ge 1) { Add-WordHyperLink -WordDocument $WordDocument -UrlText "$($response.displayName)_definitionValues" -UrlLink "$ExportPath\$classpath\definitionValues\" -Supress $True } 
-                    If (($pvJSONFileNames).Count -ge 1) { Add-WordHyperLink -WordDocument $WordDocument -UrlText "$($response.displayName)_presentationValues" -UrlLink "$ExportPath\$classpath\definitionValues\presentationValues\" -Supress $True } 
+                    Add-WordHyperLink -WordDocument $WordDocument -UrlText "$JSONFileName" -UrlLink "$ExportPath\$classpath\$foldername\$JSONFileName" -Supress $True
+                    If (($gpcJSONFileNames).Count -ge 1) { Add-WordHyperLink -WordDocument $WordDocument -UrlText "$($response.displayName)" -UrlLink "$ExportPath\$classpath\$foldername\" -Supress $True } 
                 }
-
+    
                 If (($expandeditem.assignments).Count -ge 1) {
                     Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
                     Add-WordText -WordDocument $WordDocument -Text 'This item have been assigned to the following groups' -Supress $True
@@ -1027,8 +1072,7 @@ If ($ProcessdeviceManagementScripts) {
     [array]$responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Value
 
     If ($Document) { Add-WordText -WordDocument $WordDocument -Text 'Device Management Scripts' -HeadingType Heading1 -Supress $True }
-    If($responsarray.Count -gt 0)
-    {
+    If ($responsarray.Count -gt 0) {
         foreach ($response in $responsarray) {
             $classpath = $class -replace "/", "\"
 
@@ -1047,6 +1091,14 @@ If ($ProcessdeviceManagementScripts) {
                 foreach ($prop in $subvalues.psobject.properties) {
                     $hashtable[(Format-DataToString $($prop.Name))] = (Format-DataToString $($prop.Value))
                 }
+
+                $auditresponse = $null
+                $auditresponse = Get-GraphUri -ApiVersion $script:graphApiVersion -Class "deviceManagement/auditEvents" -OData "?`$filter=resources/any(d:d/resourceId eq '$($response.id)')&`$top=1" -Value -AuditData
+                If ($null -ne $auditresponse) {
+                    $hashtable["Last Change By"] = (Format-DataToString $($auditresponse.actor.userPrincipalName))
+                    $hashtable["Last Change Action"] = (Format-DataToString $($auditresponse.activityOperationType))
+                }
+                
                 Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
                 Add-WordText -WordDocument $WordDocument -Text $response.displayName -HeadingType Heading3 -Supress $True
                 Add-WordTable -WordDocument $WordDocument -DataTable $hashtable -Design LightGridAccent1 -AutoFit Window -Supress $True
