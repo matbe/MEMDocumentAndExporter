@@ -22,6 +22,7 @@
 		<deviceConfigurations>True</deviceConfigurations>
 		<windowsAutopilotDeploymentProfiles>True</windowsAutopilotDeploymentProfiles>
 		<mobileApps>True</mobileApps>
+		<SfbApps>False</SfbApps> <!-- Enable/Disable documentation of Store for Business apps, requires 'mobileApps'=True -->
 		<applePushNotificationCertificate>False</applePushNotificationCertificate>
 		<vppTokens>False</vppTokens>
 		<policysets>True</policysets>

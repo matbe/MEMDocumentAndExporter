@@ -28,7 +28,8 @@
   Changelog:
   - 1.01             Bugfixes and better support for assignments
   - 1.02             Fix timeouts in large tenants and VPP-tokens, reported by user @portaldotjay
-  - 1.1              Fix export of groupPolicyConfigurations and added support for "Last Changed by" on more items
+  - 1.10             Fix export of groupPolicyConfigurations and added support for "Last Changed by" on more items
+  - 1.11             Fix export of mobileApps and added the option to filter out Store for business apps.
 
 .EXAMPLE
     Export-MEMConfiguration.ps1
@@ -682,7 +683,7 @@ Function Format-DataToString() {
     if ($Data -is [array]) {
         $Data = $Data -join ","
     }
-    $Data = $Data -replace '^@{|}|^#microsoft.graph.|^@odata.', ""
+    $Data = $Data -replace '^@{|(?<=^@{.*)}$|^#microsoft.graph.|^@odata.', ""
     if ($Data -match $DateTimeRegex) {
         try {
             [DateTime]$Date = ([DateTime]::Parse($Data))
@@ -743,6 +744,7 @@ try {
     [bool]$ProcessdeviceConfigurations = [System.Convert]::ToBoolean($xml.root.Process.deviceConfigurations)
     [bool]$ProcesswindowsAutopilotDeploymentProfiles = [System.Convert]::ToBoolean($xml.root.Process.windowsAutopilotDeploymentProfiles)
     [bool]$ProcessmobileApps = [System.Convert]::ToBoolean($xml.root.Process.mobileApps)
+    [bool]$ProcessSfBApps = [System.Convert]::ToBoolean($xml.root.Process.SfBApps)
     [bool]$ProcessapplePushNotificationCertificate = [System.Convert]::ToBoolean($xml.root.Process.applePushNotificationCertificate)
     [bool]$ProcessvppTokens = [System.Convert]::ToBoolean($xml.root.Process.vppTokens)
     [bool]$Processpolicysets = [System.Convert]::ToBoolean($xml.root.Process.policysets)
@@ -884,10 +886,68 @@ If ($ProcessdeviceCompliancePolicies) { Invoke-GraphClassExpand -Class "deviceMa
 If ($ProcessdeviceEnrollmentConfigurations) { Invoke-GraphClass -Class "deviceManagement/deviceEnrollmentConfigurations" -Title 'Device Enrollment Configurations' -PropForFileName "@odata.type" -Value -GetLastChange:$DocumentLastChange }
 If ($ProcessdeviceConfigurations) { Invoke-GraphClassExpand -Class "deviceManagement/deviceConfigurations" -Title 'Device Configurations' -Properties "displayName", "id", "lastModifiedDateTime", "description" -Value -GetLastChange:$DocumentLastChange }
 If ($ProcesswindowsAutopilotDeploymentProfiles) { Invoke-GraphClassExpand -Class "deviceManagement/windowsAutopilotDeploymentProfiles" -Title 'Windows Autopilot Deployment Profiles' -Value -GetLastChange:$DocumentLastChange }
-If ($ProcessmobileApps) { Invoke-GraphClassExpand -Class "deviceAppManagement/mobileApps" -Title 'Mobile Apps' -Properties "displayName", "id", "lastModifiedDateTime", "description" -Value -GetLastChange:$DocumentLastChange }
 If ($ProcessapplePushNotificationCertificate) { Invoke-GraphClass -Class "deviceManagement/applePushNotificationCertificate" -Title 'Apple Push Notification Certificate' -PropForFileName "@odata.type" -Value }
 If ($ProcessvppTokens) { Invoke-GraphClass -Class "deviceAppManagement/vppTokens" -Title 'VPP Tokens' -Value }
 
+#region mobileApps
+If ($ProcessmobileApps) { 
+    
+    $class = "deviceAppManagement/mobileApps"
+    [array]$responsarray = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Value
+
+    If ($Document) { Add-WordText -WordDocument $WordDocument -Text 'Applications' -HeadingType Heading1 -Supress $True }
+    If ($responsarray.Count -gt 0) {
+        foreach ($response in $responsarray) {
+            If (!($response.appAvailability -eq "global")) {
+                #Skip Store For business apps if SfBApps is set to false in XML
+                If (($response.'@odata.type' -eq "#microsoft.graph.microsoftStoreForBusinessApp") -and !($ProcessSfBApps)) { continue; }
+                
+                $classpath = $class -replace "/", "\"
+            
+                $expandeditem = $null
+                $expandeditem = Get-GraphUri -ApiVersion $script:graphApiVersion -Class $class -Id $response.id -OData '?$Expand=assignments'
+
+                If ($Export) { $JSONFileName = Export-JSONData -JSON $expandeditem -ExportPath "$ExportPath\$classpath" -Force }
+
+                If ($Document) {    
+
+                    $subvalues = $response 
+    
+                    $hashtable = New-Object System.Collections.Specialized.OrderedDictionary
+                    foreach ($prop in $subvalues.psobject.properties) {
+                        $hashtable[(Format-DataToString $($prop.Name))] = (Format-DataToString $($prop.Value))
+                    }
+    
+                    $auditresponse = $null
+                    $auditresponse = Get-GraphUri -ApiVersion $script:graphApiVersion -Class "deviceManagement/auditEvents" -OData "?`$filter=resources/any(d:d/resourceId eq '$($response.id)')&`$top=1" -Value -AuditData
+                    If ($null -ne $auditresponse) {
+                        $hashtable["Last Change By"] = (Format-DataToString $($auditresponse.actor.userPrincipalName))
+                        $hashtable["Last Change Action"] = (Format-DataToString $($auditresponse.activityOperationType))
+                    }
+    
+                    Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
+                    Add-WordText -WordDocument $WordDocument -Text $response.displayName -HeadingType Heading3 -Supress $True
+                    Add-WordTable -WordDocument $WordDocument -DataTable $hashtable -Design LightGridAccent1 -AutoFit Window  -Supress $True
+                    If ($export) { 
+                        Add-WordText -WordDocument $WordDocument -Text 'Exported files:' -Supress $True
+                        Add-WordHyperLink -WordDocument $WordDocument -UrlText "$JSONFileName" -UrlLink "$ExportPath\$classpath\$JSONFileName" -Supress $True 
+                    }
+                
+                    If (($expandeditem.assignments).Count -ge 1) {
+                        Add-WordText -WordDocument $WordDocument -Text '' -Supress $True
+                        Add-WordText -WordDocument $WordDocument -Text 'This item have been assigned to the following groups' -Supress $True
+                        $ListOfGroups = @()
+                        foreach ($assignment in $expandeditem.assignments) {
+                            $ListOfGroups += ($Groups -match $assignment.target.groupId).displayName
+                        }
+                        Add-WordList -WordDocument $WordDocument -ListType Bulleted -ListData $ListOfGroups -Supress $True -Verbose
+                    }
+                }
+            }
+        }
+    }
+}
+#endregion mobileApps
 
 #region policySets
 If ($Processpolicysets) {
