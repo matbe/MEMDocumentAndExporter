@@ -1,3 +1,7 @@
+# This is no longer being developed.
+As I currently do not have a test environment for Intune and have no spare time to spend on this project, this repo has been archived.
+For this to work properly again it will need some love. If anyone have the time and knowledge to continue my work contact me on X/Twitter [matbg](https://twitter.com/matbg) and I will add you as a contributor and un-archive the repo again.
+
 # Microsoft Endpoint Manager ( aka Intune ) Documentation And Export tool
 
 This repository contains PowerShell scripts to Document and Export settings from a Microsoft Endpoint Manager Tenant.
